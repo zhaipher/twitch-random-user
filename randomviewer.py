@@ -1,11 +1,9 @@
-import random
-def random_user():
-    users = []
-    for user in chat.users:
-        users.append(user.name)
-    return random.choice(users)
-def response(message):
-    user = random_user()
-    return f": {user}"
-if message.content == "!roll":
-    response(message)
+import twitchio
+client = twitchio.Client()
+@client.event("message")
+async def on_message(message):
+    if message.content == "!roll":
+        users = await client.get_users(limit=1)
+        user = users[0]
+        await client.send_message(message.channel, f": {user.name}")
+client.run()
