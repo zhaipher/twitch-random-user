@@ -1,15 +1,32 @@
-import twitchio
+from flask import Flask, request, jsonify
+import subprocess
+import json
+import random
 
-client = twitchio.Client(
-    client_id="8kdh03pq2h0cs41lz6l85pqizwwzeu",
-    client_secret="ikulw4d1fisgwn8af9e1uyrzgcp78l",
-    access_token="xdlrxcdi4gsre3px67uc4pyu4hgvo7"
-)
+app = Flask(__name__)
 
-@client.event("message")
-async def on_message(message):
-    if message.content == "!roll":
-        users = await client.get_users(limit=1)
-        user = users[0]
-        await client.send_message(message.channel, f": {user.name}")
-client.run()
+@app.route('/')
+def index():
+    # ตั้งค่า Twitch CLI command และข้อมูลการให้ OAuth Token
+    twitch_cli_command = 'curl -X GET "https://api.twitch.tv/helix/chat/chatters?broadcaster_id=626342428&moderator_id=22489982" -H "Authorization: Bearer bc2fgncb9sq2c5sdlq5x0wdoiy3wkp" -H "Client-Id: 8kdh03pq2h0cs41lz6l85pqizwwzeu"'
+
+    # ใช้ subprocess เพื่อเรียกใช้คำสั่ง CLI และดึงผลลัพธ์
+    result = subprocess.run(twitch_cli_command, capture_output=True, text=True, shell=True)
+
+    # ตรวจสอบว่าคำสั่งทำงานสมบูรณ์หรือไม่
+    if result.returncode == 0:
+        # แปลง JSON response เป็น Python dictionary
+        twitch_cli_response = json.loads(result.stdout)
+
+        # ดึงข้อมูล user_name ทั้งหมด
+        viewers = [viewer['user_login'] for viewer in twitch_cli_response['data']]
+
+        # สุ่ม user_name
+        random_viewer_name = random.choice(viewers)
+
+        return jsonify({'random_viewer': random_viewer_name})
+    else:
+        return jsonify({'error': 'Error executing Twitch CLI command'})
+
+if __name__ == '__main__':
+    app.run(debug=True)
