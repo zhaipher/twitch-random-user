@@ -1,32 +1,25 @@
-from flask import Flask, request, jsonify
 import subprocess
 import json
 import random
 
-app = Flask(__name__)
+# ตั้งค่า Twitch CLI command และข้อมูลการให้ OAuth Token
+twitch_cli_command = 'curl -X GET "https://api.twitch.tv/helix/chat/chatters?broadcaster_id=626342428&moderator_id=22489982" -H "Authorization: Bearer bc2fgncb9sq2c5sdlq5x0wdoiy3wkp" -H "Client-Id: 8kdh03pq2h0cs41lz6l85pqizwwzeu"'
 
-@app.route('/')
-def index():
-    # ตั้งค่า Twitch CLI command และข้อมูลการให้ OAuth Token
-    twitch_cli_command = 'curl -X GET "https://api.twitch.tv/helix/chat/chatters?broadcaster_id=626342428&moderator_id=22489982" -H "Authorization: Bearer bc2fgncb9sq2c5sdlq5x0wdoiy3wkp" -H "Client-Id: 8kdh03pq2h0cs41lz6l85pqizwwzeu"'
+# ใช้ subprocess เพื่อเรียกใช้คำสั่ง CLI และดึงผลลัพธ์
+result = subprocess.run(twitch_cli_command, capture_output=True, text=True, shell=True)
 
-    # ใช้ subprocess เพื่อเรียกใช้คำสั่ง CLI และดึงผลลัพธ์
-    result = subprocess.run(twitch_cli_command, capture_output=True, text=True, shell=True)
+# ตรวจสอบว่าคำสั่งทำงานสมบูรณ์หรือไม่
+if result.returncode == 0:
+    # แปลง JSON response เป็น Python dictionary
+    twitch_cli_response = json.loads(result.stdout)
 
-    # ตรวจสอบว่าคำสั่งทำงานสมบูรณ์หรือไม่
-    if result.returncode == 0:
-        # แปลง JSON response เป็น Python dictionary
-        twitch_cli_response = json.loads(result.stdout)
+    # ดึงข้อมูล user_name ทั้งหมด
+    viewers = [viewer['user_login'] for viewer in twitch_cli_response['data']]
 
-        # ดึงข้อมูล user_name ทั้งหมด
-        viewers = [viewer['user_login'] for viewer in twitch_cli_response['data']]
+    # สุ่ม user_name
+    random_viewer_name = random.choice(viewers)
 
-        # สุ่ม user_name
-        random_viewer_name = random.choice(viewers)
-
-        return jsonify({'random_viewer': random_viewer_name})
-    else:
-        return jsonify({'error': 'Error executing Twitch CLI command'})
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    print(f'{random_viewer_name}')
+else:
+    print('Error executing Twitch CLI command')
+    print(result.stderr)
